@@ -1,6 +1,7 @@
 <template>
   <div class="task-creation">
     <h2>Create New Task</h2>
+    <div>Can create: {{ canCreate() ? '✅' : '❌' }}</div>
     <input v-model="newTaskName" placeholder="Task name" :disabled="!canCreate()" />
     <button @click="addTask" :disabled="!canCreate()">Add Task</button>
   </div>
@@ -89,4 +90,9 @@ const resetTask = (task: Task) => {
 }
 </script>
 
-<style scoped lang="scss"></style>
+<style scoped>
+.task-list {
+  overflow: auto;
+  max-height: 800px;
+}
+</style>
