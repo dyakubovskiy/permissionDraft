@@ -1,20 +1,78 @@
+<template>
+  <div class="wrapper">
+    <div class="settings">
+      <div class="userControls">
+        <h2>User Settings</h2>
+        <div>
+          <label>Role:</label>
+          <select v-model="user.role">
+            <option
+              disabled
+              value>
+              Select a role
+            </option>
+            <option
+              v-for="role in USER_ROLES"
+              :key="role"
+              :value="role">
+              {{ role }}
+            </option>
+          </select>
+        </div>
+        <div>
+          <label>User ID:</label>
+          <input
+            v-model="user.id"
+            type="text" />
+        </div>
+      </div>
+      <div class="rulesDesc">
+        <h2>Правила доступа</h2>
+        <div class="roles">
+          <div
+            v-for="(rules, role) in PERMISSION_RULES"
+            :key="role"
+            class="roleCard"
+            :class="{ active: user.role === role }"
+            @click="setUser(role)">
+            <h3 class="roleTitle">{{ role }}</h3>
+            <div class="permissions">
+              <div
+                v-for="({ description, condition }, action) in rules"
+                :key="action"
+                class="permission">
+                <div class="actionName">
+                  {{ action }}
+                </div>
+                <div class="permissionInfo">
+                  <div class="description">
+                    {{ description }}
+                  </div>
+                  <code class="condition">
+                    {{ condition }}
+                  </code>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="examples">
+      <Demo :key="componentKey" />
+    </div>
+  </div>
+</template>
+
 <script setup lang="ts">
+import type { Ref } from 'vue'
 import type { Role } from './user'
-import { user } from './user'
 
 import { ref, watch } from 'vue'
-
+import { user } from './user'
 import Demo from './PermissionDemo.vue'
 
-const showDemo = ref(true)
-const componentKey = ref(0)
-watch(
-  user,
-  async () => {
-    componentKey.value++
-  },
-  { deep: true },
-)
+const USER_ROLES = ['admin', 'user'] as const satisfies Array<Role>
 
 const PERMISSION_RULES = {
   admin: {
@@ -23,82 +81,37 @@ const PERMISSION_RULES = {
     delete: { description: 'Всегда разрешено', condition: 'true' },
     reset: {
       description: 'Только завершенные задачи',
-      condition: "task.status === 'done'",
-    },
+      condition: "task.status === 'done'"
+    }
   },
   user: {
     create: { description: 'Запрещено', condition: 'false' },
     read: { description: 'Всегда разрешено', condition: 'true' },
     delete: {
       description: 'Только незавершенные задачи',
-      condition: "task.status !== 'done'",
+      condition: "task.status !== 'done'"
     },
     reset: {
       description: 'Только свои завершенные задачи',
-      condition: "task.status === 'done' && task.executorId === user.id",
-    },
+      condition: "task.status === 'done' && task.executorId === user.id"
+    }
+  }
+} as const satisfies Record<Role, Record<string, { description: string; condition: string }>>
+
+const componentKey: Ref<number> = ref(0)
+watch(
+  user,
+  () => {
+    componentKey.value++
   },
-}
+  { deep: true }
+)
 
 const setUser = (role: Role) => (user.value.role = role)
 </script>
 
-<template>
-  <div class="permissions-demo">
-    <div class="settings">
-      <div class="user-controls">
-        <h2>User Settings</h2>
-        <div>
-          <label>Role:</label>
-          <select
-            :value="user.role"
-            @change="(event) => (user.role = (event.target as HTMLSelectElement).value as Role)"
-          >
-            <option value="admin">admin</option>
-            <option value="user">user</option>
-          </select>
-        </div>
-        <div>
-          <label>User ID:</label>
-          <input type="text" v-model="user.id" />
-        </div>
-      </div>
-
-      <div class="rules-visualization">
-        <h2>Правила доступа</h2>
-
-        <div class="roles-container">
-          <div
-            v-for="(rules, role) in PERMISSION_RULES"
-            :key="role"
-            class="role-card"
-            :class="{ active: user.role === role }"
-            @click="setUser(role)"
-          >
-            <h3 class="role-title">{{ role }}</h3>
-
-            <div class="permission-list">
-              <div v-for="(permission, action) in rules" :key="action" class="permission-item">
-                <div class="action-name">{{ action }}</div>
-                <div class="permission-info">
-                  <div class="description">{{ permission.description }}</div>
-                  <code class="condition">{{ permission.condition }}</code>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="examples">
-      <Demo v-if="showDemo" :key="componentKey" />
-    </div>
-  </div>
-</template>
-
-<style>
-.permissions-demo {
+<style scoped>
+.wrapper {
   display: flex;
   justify-content: center;
   gap: 24px;
@@ -106,8 +119,7 @@ const setUser = (role: Role) => (user.value.role = role)
   margin: 0 auto;
 }
 
-.user-controls,
-.task-creation {
+.userControls {
   margin-bottom: 30px;
   padding: 15px;
   border: 1px solid #eee;
@@ -115,41 +127,12 @@ const setUser = (role: Role) => (user.value.role = role)
   width: max-content;
 }
 
-.task-item {
-  margin: 15px 0;
-  padding: 15px;
-  border: 1px solid #ddd;
-  border-radius: 8px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.task-info,
-.task-actions,
-.permissions-info {
+.permissionsInfo {
   flex: 1;
   margin: 0 10px;
 }
 
-button {
-  margin: 0 5px;
-  padding: 5px 10px;
-  cursor: pointer;
-}
-
-button.disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-input,
-select {
-  margin: 5px;
-  padding: 5px;
-}
-
-.rules-visualization {
+.rulesDesc {
   margin-top: 2rem;
   padding: 1.5rem;
   background: #f8f9fa;
@@ -157,12 +140,12 @@ select {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
-.roles-container {
+.roles {
   display: flex;
   gap: 16px;
 }
 
-.role-card {
+.roleCard {
   flex: 1;
   padding: 1.5rem;
   background: white;
@@ -172,24 +155,24 @@ select {
   cursor: pointer;
 }
 
-.role-card.active {
+.roleCard.active {
   border-color: #42b983;
   box-shadow: 0 4px 12px rgba(66, 185, 131, 0.15);
 }
 
-.role-title {
+.roleTitle {
   margin: 0 0 1rem;
   color: #2c3e50;
   text-transform: capitalize;
   font-size: 1.25rem;
 }
 
-.permission-list {
+.permissions {
   display: grid;
   gap: 1rem;
 }
 
-.permission-item {
+.permission {
   display: flex;
   gap: 1rem;
   padding: 1rem;
@@ -197,14 +180,14 @@ select {
   border-radius: 6px;
 }
 
-.action-name {
+.actionName {
   min-width: 80px;
   font-weight: 500;
   color: #42b983;
   text-transform: capitalize;
 }
 
-.permission-info {
+.permissionInfo {
   flex: 1;
 }
 
